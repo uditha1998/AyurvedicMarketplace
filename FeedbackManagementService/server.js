@@ -1,23 +1,39 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
-const cors = require('cors');
+const app = require('./app')
+const connectDatabase = require('./config/database')
 
-const app = express();
-const port = process.env.PORT || 5000;
+// const dotenv = require('dotenv');
+const cloudinary = require('cloudinary')
 
-// Middleware
-app.use(cors());
-app.use(bodyParser.json());
+// Handle Uncaught exceptions
+process.on('uncaughtException', err => {
+    console.log(`ERROR: ${err.stack}`);
+    console.log('Shutting down due to uncaught exception');
+    process.exit(1)
+})
 
-// // MongoDB Configuration
-// const mongoURI = process.env.MONGO_URI || 'mongodb://localhost/mern-stack';
-// mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-//   .then(() => console.log('MongoDB Connected'))
-//   .catch(err => console.log(err));
+// Setting up config file
+if (process.env.NODE_ENV !== 'PRODUCTION') require('dotenv').config({ path: 'feedbackManagementService/config/config.env' })
 
-// // Routes
-// app.use('/api/users', require('./routes/users'));
 
-// Start the Server
-app.listen(port, () => console.log(`Server running on port ${port}`));
+// Connecting to database
+connectDatabase();
+
+// Setting up cloudinary configuration
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+})
+
+const server = app.listen(process.env.PORT, () => {
+    console.log(`Server started on PORT: ${process.env.PORT} in ${process.env.NODE_ENV} mode.`)
+})
+
+// Handle Unhandled Promise rejections
+process.on('unhandledRejection', err => {
+    console.log(`ERROR: ${err.stack}`);
+    console.log('Shutting down the server due to Unhandled Promise rejection');
+    server.close(() => {
+        process.exit(1)
+    })
+})
